@@ -87,7 +87,6 @@ class Pagination {
                 let col = self.Columns[i];
                 var val = self.CachedData[rowCount][col];
                 $(row).append('<div class="col-md-4">' + val + '</div>');
-                //$(row).append('<div data-col="'+col+'" data-val="'+val+'" class="col-md-4">' + val + '</div>');
             }
         }
 
@@ -110,7 +109,6 @@ class Pagination {
                 if (!filters) filters = new Object();
                 filters[obj.key] = obj.value;
             }
-                //filters.push(obj);
         });
 
         Ajax.Get(this.DataSource, { start: self.Start, count: self.RowsPerPage, sortColumn: self.SortColumn, sortDirection: self.SortDirection, filters: filters }, 'json')
