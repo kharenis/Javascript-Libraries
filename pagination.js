@@ -1,5 +1,5 @@
 $(function () {
-    $('.data-table').each(function () {
+    $('.dt').each(function () {
         var pagination = new Pagination($(this));
         pagination.Init();
         paginationTables.push(pagination);
@@ -20,29 +20,69 @@ class Pagination {
     CurrentPage = 0;
     SortColumn = "Id";
     SortDirection = "descending";
+    PostRender = null;
+
+    InitializeNav(table) {
+
+        var self = this;
+        var navContainer = document.createElement('div');
+        navContainer.setAttribute('class', 'row dt-nav');
+
+        var backBtnContainer = document.createElement('div');
+        var backBtn = document.createElement('button');
+        backBtn.setAttribute('type', 'button');
+        backBtn.classList.add('dt-nav-prev');
+        backBtnContainer.append(backBtn);
+
+        var pageChangeContainer = document.createElement('div');
+        var pageChangeInput = document.createElement('input');
+        pageChangeInput.setAttribute('type', 'text');
+        pageChangeInput.setAttribute('value', 1);
+        pageChangeInput.setAttribute('class', 'dt-current-page');
+        var pageChangeText = document.createElement('span');
+        pageChangeText.innerText = 'of';
+        var pageChangeCount = document.createElement('span');
+        pageChangeCount.classList.add('dt-page-count');
+
+        pageChangeContainer.append(pageChangeInput);
+        pageChangeContainer.append(pageChangeText);
+        pageChangeContainer.append(pageChangeCount);
+
+        var forwardBtnContainer = document.createElement('div');
+        var forwardBtn = document.createElement('button');
+        forwardBtn.setAttribute('type', 'button');
+        forwardBtn.classList.add('dt-nav-next');
+        forwardBtnContainer.append(forwardBtn);
+
+        navContainer.append(backBtnContainer);
+        navContainer.append(pageChangeContainer);
+        navContainer.append(forwardBtnContainer);
+
+        $(table).append(navContainer);
+
+        $(backBtn).click(function () {
+            self.Prev();
+        });
+
+        $(forwardBtn).click(function () {
+            self.Next();
+        });
+
+        $(pageChangeInput).on('change', function () {
+            let val = $(this).val();
+            self.PageChange(val);
+        });
+    }
 
     Init() {
         let self = this;
 
         this.DataSource = this.Table.data('source');
-        this.RowsPerPage = this.Table.data('count');
+        this.RowsPerPage = this.Table.data('row-count');
 
-        let next = this.Table.data('next');
-        let previous = this.Table.data('previous');
-
-        let pageChange = this.Table.data('page-entry');
-
-        $(next).click(function () {
-            self.Next();
-        });
-        $(previous).click(function () {
-            self.Prev();
-        });
-
-        $(pageChange).on('change', function () {
-            let val = $(this).val();
-            self.PageChange(val);
-        });
+        let postRenderStr = this.Table.data('post-render');
+        if (postRenderStr)
+            self.PostRender = window[postRenderStr];
 
         this.Table.find('[data-search-column]').on('change', function () {
             self.CachedData = [];
@@ -55,11 +95,15 @@ class Pagination {
             var columnName = $(this).data('column');
 
             $(this).find('span').click(function () {
-                 self.SortChange(columnName);
+                self.SortChange(columnName);
             });
 
             self.Columns.push(columnName);
         });
+
+        var val = this.Table.data('paginate');
+        if (this.Table.data('paginate') === true)
+            this.InitializeNav(this.Table);
 
         this.GetData();
     }
@@ -68,9 +112,11 @@ class Pagination {
         let self = this;
         let end = start + rowsPerPage;
 
+        if (end === undefined || isNaN(end)) end = this.CachedData.length;
+
         let currentPage = (start / rowsPerPage) + 1;
 
-        var tableBody = $(self.Table).find('.data-table-body');
+        var tableBody = $(self.Table).find('.dt-body');
 
         //Clear the table
         $(tableBody).empty();
@@ -82,16 +128,28 @@ class Pagination {
 
             var row = document.createElement('div');
             row.classList.add('row');
+            row.classList.add('dt-row');
             $(tableBody).append(row);
             for (var i = 0; i < self.Columns.length; i++) {
                 let col = self.Columns[i];
-                var val = self.CachedData[rowCount][col];
-                $(row).append('<div class="col-md-4">' + val + '</div>');
+                let val = self.CachedData[rowCount][col];
+
+                let column = document.createElement('div');
+                column.classList.add('col-md-4');
+
+                row.setAttribute('data-' + col, val);
+                column.textContent = val;
+
+                $(row).append(column);
+                //$(row).append('<div data-col="'+col+'" data-val="'+val+'" class="col-md-4">' + val + '</div>');
             }
         }
 
-        $(self.Table).find('.data-table-nav .data-table-current-page').val(currentPage);
-        $(self.Table).find('.data-table-nav .data-table-page-count').text(Math.ceil(this.ServerDatasetLength / rowsPerPage));
+        $(self.Table).find('.dt-nav .dt-current-page').val(currentPage);
+        $(self.Table).find('.dt-nav .dt-page-count').text(Math.ceil(this.ServerDatasetLength / rowsPerPage));
+
+        if (self.PostRender)
+            self.PostRender(self.Table);
 
     }
 
@@ -109,9 +167,12 @@ class Pagination {
                 if (!filters) filters = new Object();
                 filters[obj.key] = obj.value;
             }
+            //filters.push(obj);
         });
 
-        Ajax.Get(this.DataSource, { start: self.Start, count: self.RowsPerPage, sortColumn: self.SortColumn, sortDirection: self.SortDirection, filters: filters }, 'json')
+        let sort = self.SortColumn + ' ' + self.SortDirection;
+
+        Ajax.Get(this.DataSource, { start: self.Start, count: self.RowsPerPage, sort: sort, filters: filters }, 'json')
             .done(function (data) {
                 self.CachedData = self.CachedData.concat(data.data);
                 self.ServerDatasetLength = data.count;
