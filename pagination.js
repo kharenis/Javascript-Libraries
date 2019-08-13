@@ -10,20 +10,7 @@ var paginationTables = [];
 
 
 class Pagination {
-    DataSource = '';
-    Start = 0;
-    RowsPerPage = 0;
-    Table = null;
-    Columns = [];
-    CachedData = [];
-    ServerDatasetLength = 0;
-    CurrentPage = 0;
-    SortColumn = "Id";
-    SortDirection = "descending";
-    PostRender = null;
-
     InitializeNav(table) {
-
         var self = this;
         var navContainer = document.createElement('div');
         navContainer.setAttribute('class', 'row dt-nav');
@@ -184,7 +171,7 @@ class Pagination {
 
     SortChange(col) {
         if (col === this.SortColumn) {
-            if (this.SortDirection == "ascending")
+            if (this.SortDirection === "ascending")
                 this.SortDirection = "descending";
             else
                 this.SortDirection = "ascending";
@@ -217,5 +204,15 @@ class Pagination {
 
     constructor($table) {
         this.Table = $table;
+        this.DataSource = '';
+        this.Start = 0;
+        this.RowsPerPage = 0;
+        this.Columns = [];
+        this.CachedData = [];
+        this.ServerDatasetLength = 0;
+        this.CurrentPage = 0;
+        this.SortColumn = "Id";
+        this.SortDirection = "descending";
+        this.PostRender = null;
     }
 }
