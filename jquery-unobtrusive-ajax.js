@@ -28,6 +28,7 @@ function makeAjaxRequest(element) {
     var ajaxComplete = $(element).data('ajax-complete');
     var ajaxFailure = $(element).data('ajax-failure');
     var ajaxUpdate = $(element).data('ajax-update');
+
     var ajaxUrl = $(element).data('ajax-url');
     if (!ajaxUrl)
         ajaxUrl = window.location.href;
@@ -58,7 +59,7 @@ function makeAjaxRequest(element) {
                 case "afer":
                     $(ajaxUpdate).append(data);
                     break;
-                case "replace":
+                default:
                     $(ajaxUpdate).empty();
                     $(ajaxUpdate).append(data);
                     break;
@@ -71,12 +72,12 @@ function makeAjaxRequest(element) {
     });
 
     request.fail(function (error) {
-        alert(JSON.stringify(error));
-
         $(ajaxUpdate).empty();
         $(ajaxUpdate).append(error.responseText);
 
         if (ajaxFailure)
             window[ajaxFailure](error);
+
+        bindUnobtrusiveAjax();
     });
 }
